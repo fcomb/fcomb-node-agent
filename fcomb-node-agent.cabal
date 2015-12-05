@@ -1,0 +1,29 @@
+name:                fcomb-node-agent
+version:             0.1.0.0
+description:         Please see README.md
+homepage:            http://github.com/fcomb/fcomb-node-agent#readme
+license:             Apache-2.0
+license-file:        LICENSE
+author:              Timothy Klim
+maintainer:          github@timothyklim.com
+copyright:           2015 fcomb
+category:            System
+build-type:          Simple
+cabal-version:       >=1.10
+
+executable fcomb-node-agent
+  hs-source-dirs:      src
+  main-is:             Main.hs
+  default-language:    Haskell2010
+  build-depends:       base >= 4.7 && < 5
+                       , http-conduit == 2.1.*
+                       , http-client
+                       , http-types
+                       , network
+                       , conduit
+                       , conduit-extra
+                       , bytestring
+                       , transformers
+                       , resourcet
+                       , pipes
+                       , pipes-http
