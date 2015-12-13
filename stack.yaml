@@ -1,6 +1,7 @@
 resolver: lts-3.7
 packages:
 - '.'
-extra-deps: []
+extra-deps:
+- 'pkcs10-0.1.0.3'
 flags: {}
 extra-package-dbs: []
