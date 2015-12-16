@@ -18,6 +18,9 @@ executable fcomb-node-agent
   build-depends:       base >= 4.7 && < 5
                      , pkcs10 >= 0.1.0.3
                      , cryptonite
+                     , x509
+                     , pem
+                     , uuid
                      , http-conduit == 2.1.*
                      , http-client
                      , http-types
@@ -29,3 +32,7 @@ executable fcomb-node-agent
                      , resourcet
                      , pipes
                      , pipes-http
+                     , wreq
+                     , aeson
+                     , lens
+                     , lens-aeson
