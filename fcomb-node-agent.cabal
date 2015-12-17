@@ -36,3 +36,4 @@ executable fcomb-node-agent
                      , aeson
                      , lens
                      , lens-aeson
+                     , retry
