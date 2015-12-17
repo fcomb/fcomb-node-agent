@@ -1,7 +1,6 @@
 resolver: nightly-2015-12-16
 packages:
 - '.'
-extra-deps:
-- 'pkcs10-0.1.0.4'
+extra-deps: []
 flags: {}
 extra-package-dbs: []
