@@ -16,7 +16,7 @@ executable fcomb-node-agent
   main-is:             Main.hs
   default-language:    Haskell2010
   build-depends:       base >= 4.7 && < 5
-                     , pkcs10 >= 0.1.0.3
+                     , pkcs10 >= 0.1.0.4
                      , cryptonite
                      , x509
                      , pem
