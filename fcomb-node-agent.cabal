@@ -34,6 +34,7 @@ executable fcomb-node-agent
                      , aeson
                      , lens
                      , lens-aeson
+                     , retry
                      , unix
                      , directory
                      , filepath
