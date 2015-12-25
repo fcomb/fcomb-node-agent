@@ -38,3 +38,9 @@ executable fcomb-node-agent
                      , lens
                      , lens-aeson
                      , retry
+                     , unix
+                     , directory
+                     , filepath
+                     , process
+                     , yaml
+                     , text
