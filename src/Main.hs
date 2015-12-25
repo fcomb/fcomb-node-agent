@@ -47,7 +47,7 @@ main = do
   let pem = BC.unpack . pemWriteBS . toPEM $ req
   let joinReq = JoinRequest pem
   joinToken <- head <$> getArgs
-  let url = "http://api/v1/nodes/join?access_token=" ++ joinToken
+  let url = "https://api.fcomb.io/v1/agent/nodes/join?access_token=" ++ joinToken
   r <- WQ.post url (toJSON joinReq)
   -- res <- (r ^? responseBody . key "json" . nth 0)
   putStrLn . show $ r

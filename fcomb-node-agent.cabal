@@ -20,15 +20,18 @@ executable fcomb-node-agent
                      , cryptonite
                      , x509
                      , pem
+                     , uuid
+                     , http-conduit == 2.1.*
+                     , http-client
+                     , http-types
+                     , network
+                     , conduit
+                     , conduit-extra
                      , bytestring
+                     , transformers
+                     , resourcet
                      , wreq
                      , aeson
                      , lens
                      , lens-aeson
-                     , unix
-                     , directory
-                     , filepath
-                     , process
-                     , yaml
-                     , text
-                     , cryptocipher
+                     , retry
