@@ -16,7 +16,7 @@ toPEM privKey =
     bits = encodeASN1' DER keyASN1
     keyASN1 =
       Start Sequence :
-      IntVal (fromIntegral $ RSA.public_size pubKey) :
+      IntVal 0 :
       IntVal (RSA.public_n pubKey) :
       IntVal (RSA.public_e pubKey) :
       IntVal (RSA.private_d privKey) :
