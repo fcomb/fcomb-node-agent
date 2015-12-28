@@ -5,6 +5,8 @@ import Certs
 import Config
 import Globals
 import Docker
+import System.Environment
+import System.Exit
 import System.Directory
 import System.FilePath
 import System.Posix.Files
@@ -13,10 +15,20 @@ import Control.Concurrent
 
 main :: IO ()
 main = do
+    args <- getArgs
+
+    token <- case args of
+        a1:as | not (null a1) -> do
+            putStrLn $ "Got agent token: " ++ a1
+            return (a1)
+        _ -> do
+            putStrLn "Token is empty! Provide token as the first argument to the agent"
+            exitFailure
+
     let dockerBinPath = combine dockerDir dockerBinaryName
-        dockerNewBinPath = combine dockerDir dockerNewBinaryName
-        dockerNewBinSigPath = combine dockerDir dockerNewBinarySigName
-        configFilePath = combine fcombHome configFileName
+        --dockerNewBinPath = combine dockerDir dockerNewBinaryName
+        --dockerNewBinSigPath = combine dockerDir dockerNewBinarySigName
+        --configFilePath = combine fcombHome configFileName
         keyFilePath = combine fcombHome keyFileName
         certFilePath = combine fcombHome certFileName
         caFilePath = combine fcombHome cAFileName
@@ -24,51 +36,40 @@ main = do
     -- create directories with parents and default permissions of 755
     createDirectoryIfMissing True fcombHome
     createDirectoryIfMissing True dockerDir
-    createDirectoryIfMissing True logDir
 
-    putStrLn "Running node-agent: version" + agentVersion
-    createPidFile fcombPidFile
+    -- removing old certificates
+    fileExist keyFilePath >>= \exists -> if exists
+        then removeFile keyFilePath
+        else return ()
 
-	putStrLn "Checking if config file exists"
-	fileExist configFilePath >>= \exists -> if exists
-        then
-            return ()
-        else do
-            -- todo: weird logic
-            let conf = loadDefaultConf
-            saveConf configFilePath conf
+    fileExist certFilePath >>= \exists -> if exists
+        then removeFile certFilePath
+        else return ()
 
-	putStrLn "Loading Configuration file"
-	conf <- loadConf configFilePath
+    fileExist caFilePath >>= \exists -> if exists
+        then removeFile caFilePath
+        else return ()
 
-	-- todo: update config with args
-    -- setConfigFile configFilePath
 
-    if null (fcombToken conf)
-        then do
-            putStrLn "Token is empty!"
-            removeFile fcombPidFile
-        else
-            return ()
+    putStrLn $ "Running node-agent: version " ++ agentVersion
+    --createPidFile fcombPidFile
 
-    let regUrl = combine (fcombHost conf) regEndpoint
-    if null (fcombUUID conf)
-        then do
-            removeFile keyFilePath
-            removeFile certFilePath
-            removeFile caFilePath
-            putStrLn "Registering in Fcomb via POST: " ++ regUrl
-            postToFcomb regUrl caFilePath configFilePath
-        else
-            return ()
+--    putStrLn "Checking if config file exists"
+--    fileExist configFilePath >>= \exists -> if exists
+--        then
+--            return ()
+--        else do
+--            putStrLn "Writing a config file with default settings"
+--            saveConf configFilePath defaultConf
+--
+--    putStrLn "Loading Configuration file"
+--    conf <- loadConf configFilePath
 
-    --createCerts keyFilePath certFilePath (certCommonName conf)
-
-    --putStrLn "Registering in Fcomb via PATCH: " ++ regUrl ++ (fcombUUID conf)
-    --patchToFcomb regUrl caFilePath certFilePath configFilePath
-
-    -- saving conf after patching
-    saveConf configFilePath conf
+    cert <- createCerts keyFilePath
+    putStrLn $ "Generated certificate: \n" ++ cert
+    let regUrl = defaultFcombHost ++ regEndpoint
+    putStrLn $ "Registering with fcomb: " ++ regUrl
+    register regUrl token cert caFilePath certFilePath
 
     -- download docker binary if missing
     fileExist dockerBinPath >>= \exists -> if exists
@@ -81,9 +82,9 @@ main = do
             --createSymbolicLink path dockerSymbolicLink
 
     putStrLn "Initializing docker daemon"
-    startDocker dockerBinPath keyFilePath certFilePath caFilePath
-
-   -- putStrLn "Verifying the registration with Fcomb"
+    --dockerHandle <- startDocker dockerBinPath keyFilePath certFilePath caFilePath defaultDockerHost
+    putStrLn "Docker daemon has been started"
+    --putStrLn "Verifying the registration with Fcomb"
     --verifyRegistration regUrl
 
     --putStrLn "Docker server started. Entering maintenance loop"
@@ -94,7 +95,7 @@ main = do
 
 --maintenanceLoop = do
 --    threadDelay heartBeatInterval
---    updateDocker dockerBinPath dockerNewBinPath dockerNewBinSigPath keyFilePath certFilePath caFilePath
+--    updateDocker dockerBinPath dockerNewBinPath dockerNewBinSigPath keyFilePath certFilePath caFilePath handle
 --
 --    if dockerProcess == nil
 --        threadDelay heartBeatInterval * 1000 * 1000
@@ -106,23 +107,23 @@ main = do
 
 
 checkPidFile :: FilePath -> IO ()
-checkPidFile pidFile = do
-	fileExist pidFile >>= \exists -> if exists
+checkPidFile pidFile =
+    fileExist pidFile >>= \exists -> if exists
         then do
             pid <- readFile pidFile
             let procFile = combine "/proc" pid
-	        fileExist procFile >>= \exists -> if exists
+            fileExist procFile >>= \exists -> if exists
                 then
-                    putStrLn "Found pid file, make sure that fcomb-agent is not running or remove " ++ pidFile
+                    putStrLn $ "Found pid file, make sure that fcomb-agent is not running or remove " ++ pidFile
                 else do
                     return ()
-        else do
+        else
             return ()
 
 
 createPidFile :: FilePath -> IO ()
-createPidFile pidFile = do
-    checkPidFile pidFile
+createPidFile pidFile =
     getProcessID >>= \pid -> do
-        writeFile pidFile pid
-        putStrLn "Created pid file( " ++ pidFIle ++ "): " + pid
+        checkPidFile pidFile
+        writeFile pidFile (show pid)
+        putStrLn $ "Created pid file( " ++ pidFile ++ "): " ++ (show pid)

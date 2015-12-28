@@ -2,13 +2,17 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Config (
-    module Config
+    loadConf,
+    saveConf,
+    defaultConf,
+    Configuration(..)
 ) where
 
 import Data.Yaml
 import Data.Maybe
 import GHC.Generics
 import Globals
+import Control.Lens
 
 data Configuration = Configuration {
     certCommonName :: String
@@ -21,6 +25,7 @@ data Configuration = Configuration {
 
 instance ToJSON Configuration
 instance FromJSON Configuration
+
 
 loadConf :: FilePath -> IO Configuration
 loadConf filePath = do
@@ -42,8 +47,8 @@ saveConf :: FilePath -> Configuration -> IO ()
 saveConf filePath conf = encodeFile filePath conf
 
 
-loadDefaultConf :: Configuration
-loadDefaultConf = Configuration
+defaultConf :: Configuration
+defaultConf = Configuration
         defaultCertCommonName
         defaultDockerHost
         defaultFcombHost

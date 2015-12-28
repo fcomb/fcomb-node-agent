@@ -23,24 +23,15 @@ executable fcomb-node-agent
                      , asn1-encoding
                      , asn1-types
                      , pem
-                     , uuid
-                     , http-conduit == 2.1.*
-                     , http-client
-                     , http-types
-                     , network
-                     , conduit
-                     , conduit-extra
                      , bytestring
-                     , transformers
-                     , resourcet
                      , wreq
                      , aeson
                      , lens
                      , lens-aeson
-                     , retry
                      , unix
                      , directory
                      , filepath
                      , process
                      , yaml
                      , text
+                     , cryptocipher
