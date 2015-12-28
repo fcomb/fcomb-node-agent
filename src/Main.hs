@@ -11,15 +11,19 @@ import System.Directory
 import System.FilePath
 import System.Posix.Files
 import System.Posix.Process
+import System.Process
+import GHC.IO.Handle
 import Control.Concurrent
 
 main :: IO ()
 main = do
+    putStrLn $ "Running fcomb agent version " ++ agentVersion
+
     args <- getArgs
 
     token <- case args of
         a1:as | not (null a1) -> do
-            putStrLn $ "Got agent token: " ++ a1
+            putStrLn $ "Provided token: " ++ a1
             return (a1)
         _ -> do
             putStrLn "Token is empty! Provide token as the first argument to the agent"
@@ -33,11 +37,28 @@ main = do
         certFilePath = combine fcombHome certFileName
         caFilePath = combine fcombHome cAFileName
 
-    -- create directories with parents and default permissions of 755
+    putStrLn $ "Creating directories for fcomb and docker (if missing): " ++ fcombHome ++ ", " ++ dockerDir
     createDirectoryIfMissing True fcombHome
     createDirectoryIfMissing True dockerDir
 
-    -- removing old certificates
+    fileExist dockerBinPath >>= \exists -> if exists
+        then
+            return ()
+        else do
+            putStrLn "Downloading docker binary..."
+            download dockerBinaryURL dockerBinPath
+
+            p <- getPermissions dockerBinPath
+            setPermissions dockerBinPath (p {executable = True})
+
+            fileExist dockerSymbolicLink >>= \exists -> if exists
+                then removeLink dockerSymbolicLink
+                else return ()
+
+            createSymbolicLink dockerBinPath dockerSymbolicLink
+
+
+    putStrLn $ "Removing old certificates: " ++ keyFilePath ++ ", " ++ certFilePath ++ ", " ++ caFilePath
     fileExist keyFilePath >>= \exists -> if exists
         then removeFile keyFilePath
         else return ()
@@ -50,59 +71,46 @@ main = do
         then removeFile caFilePath
         else return ()
 
-
-    putStrLn $ "Running node-agent: version " ++ agentVersion
     --createPidFile fcombPidFile
 
---    putStrLn "Checking if config file exists"
+--    putStrLn $ "Checking if config file exists " ++ configFilePath
 --    fileExist configFilePath >>= \exists -> if exists
 --        then
 --            return ()
 --        else do
---            putStrLn "Writing a config file with default settings"
+--            putStrLn "Writing default settings to the config file"
 --            saveConf configFilePath defaultConf
 --
---    putStrLn "Loading Configuration file"
+--    putStrLn $ "Loading config from " ++ configFilePath
 --    conf <- loadConf configFilePath
 
     cert <- createCerts keyFilePath
-    putStrLn $ "Generated certificate: \n" ++ cert
-    let regUrl = defaultFcombHost ++ regEndpoint
-    putStrLn $ "Registering with fcomb: " ++ regUrl
-    register regUrl token cert caFilePath certFilePath
-
-    -- download docker binary if missing
-    fileExist dockerBinPath >>= \exists -> if exists
-        then
-            return ()
-        else do
-            putStrLn "Downloading docker binary..."
-            download dockerBinaryURL dockerBinPath
-            --removeLink dockerSymbolicLink
-            --createSymbolicLink path dockerSymbolicLink
+    register token cert caFilePath certFilePath
 
     putStrLn "Initializing docker daemon"
-    --dockerHandle <- startDocker dockerBinPath keyFilePath certFilePath caFilePath defaultDockerHost
+    dockerHandle <- startDocker dockerSymbolicLink keyFilePath certFilePath caFilePath defaultDockerHost
     putStrLn "Docker daemon has been started"
-    --putStrLn "Verifying the registration with Fcomb"
-    --verifyRegistration regUrl
 
-    --putStrLn "Docker server started. Entering maintenance loop"
-    --maintenanceLoop
+--    putStrLn "Docker server started. Entering maintenance loop"
+--    maintenanceLoop dockerHandle
 
     putStrLn "Over"
 
 
---maintenanceLoop = do
---    threadDelay heartBeatInterval
+--maintenanceLoop :: ProcessHandle -> IO ()
+--maintenanceLoop dockerHandle = do
+--    threadDelay $ fromInteger heartBeatInterval
 --    updateDocker dockerBinPath dockerNewBinPath dockerNewBinSigPath keyFilePath certFilePath caFilePath handle
 --
---    if dockerProcess == nil
---        threadDelay heartBeatInterval * 1000 * 1000
---        if dockerProcess == nil ScheduleToTerminateDocker == false
---            putStrLn "Respawning docker daemon"
---            startDocker
---
+--    hIsClosed dockerHandle >>= \isClosed -> if isClosed
+--        then do
+--            threadDelay $ fromInteger $ heartBeatInterval * 1000 * 1000
+--            if not scheduleToTerminateDocker
+--                then do
+--                    putStrLn "Respawning docker daemon"
+--                    startDocker
+--                else return ()
+--        else return ()
 --    maintenanceLoop
 
 

@@ -32,5 +32,3 @@ maxWaitingTime    = 200 --seconds
 heartBeatInterval = 5 * 1000 * 1000  --microseconds
 
 dockerHostPort = "2375"
-
-dialTimeOut = 10 --seconds
