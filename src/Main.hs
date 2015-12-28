@@ -88,7 +88,7 @@ main = do
     register token cert caFilePath certFilePath
 
     putStrLn "Initializing docker daemon"
-    dockerHandle <- startDocker dockerSymbolicLink keyFilePath certFilePath caFilePath defaultDockerHost
+    dockerHandle <- startDocker dockerSymbolicLink keyFilePath certFilePath caFilePath defaultDockerHost defaultDockerSocket
     putStrLn "Docker daemon has been started"
 
 --    putStrLn "Docker server started. Entering maintenance loop"

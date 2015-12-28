@@ -6,13 +6,13 @@ import System.Process
 import System.FilePath
 import Text.Printf
 
-startDocker :: FilePath -> FilePath -> FilePath -> FilePath -> String -> IO ProcessHandle
-startDocker dockerBinPath keyFilePath certFilePath caFilePath dockerHost = do
+startDocker :: FilePath -> FilePath -> FilePath -> FilePath -> String -> String -> IO ProcessHandle
+startDocker dockerBinPath keyFilePath certFilePath caFilePath dockerHost dockerSocket = do
     putStrLn "Checking docker version:"
     callCommand $ dockerBinPath ++ " -v"
 
     let daemonOpt = " daemon"
-        bindOpt = " -H " ++ dockerHost
+        bindOpt = " -H " ++ dockerHost ++ " -H " ++ dockerSocket
         certOpt = " --tlscert " ++ certFilePath ++
                   " --tlskey " ++ keyFilePath ++
                   " --tlscacert " ++ caFilePath ++

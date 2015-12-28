@@ -26,7 +26,7 @@ dockerNewBinarySigName = "docker.new.sig"
 fcombPidFile           = "/var/run/fcomb-agent.pid"
 
 regEndpoint       = "/v1/agent/nodes/join"
-dockerDefaultHost = "unix:///var/run/docker.sock"
+defaultDockerSocket = "unix:///var/run/docker.sock"
 
 maxWaitingTime    = 200 --seconds
 heartBeatInterval = 5 * 1000 * 1000  --microseconds
