@@ -14,11 +14,14 @@ cabal-version:       >=1.10
 executable fcomb-node-agent
   hs-source-dirs:      src
   main-is:             Main.hs
+  other-modules:       Crypto.RSA
   default-language:    Haskell2010
   build-depends:       base >= 4.7 && < 5
                      , pkcs10 >= 0.1.0.4
                      , cryptonite
                      , x509
+                     , asn1-encoding
+                     , asn1-types
                      , pem
                      , uuid
                      , http-conduit == 2.1.*
