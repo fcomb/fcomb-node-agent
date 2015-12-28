@@ -12,8 +12,8 @@ toPEM :: RSA.PrivateKey -> PEM
 toPEM privKey =
   PEM "RSA PRIVATE KEY" [] bits
   where
-    pubKey = RSA.private_pub privKey
     bits = encodeASN1' DER keyASN1
+    pubKey = RSA.private_pub privKey
     keyASN1 =
       Start Sequence :
       IntVal 0 :
