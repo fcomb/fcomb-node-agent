@@ -3,8 +3,7 @@ module Docker (
 ) where
 
 import System.Process
-import System.FilePath
-import Text.Printf
+
 
 startDocker :: FilePath -> FilePath -> FilePath -> FilePath -> String -> String -> IO ProcessHandle
 startDocker dockerBinPath keyFilePath certFilePath caFilePath dockerHost dockerSocket = do
@@ -21,3 +20,8 @@ startDocker dockerBinPath keyFilePath certFilePath caFilePath dockerHost dockerS
 
     putStrLn $ "Running docker: " ++ dockerBinPath ++ opts
     spawnCommand $ dockerBinPath ++ opts
+
+
+getDockerVersion :: FilePath -> IO String
+getDockerVersion dockerBinPath =
+    readCreateProcess (shell dockerBinPath) ""

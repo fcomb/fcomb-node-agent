@@ -10,7 +10,6 @@ import System.Posix.Files
 import System.FilePath
 import Network.Wreq
 import GHC.Generics
-import Globals
 import Data.Maybe
 import Data.Aeson
 import Data.Text
@@ -39,20 +38,19 @@ download url path = do
     BL.writeFile path (r ^. responseBody)
 
 
-register :: String -> String -> FilePath -> FilePath-> IO ()
-register token cert caFilePath certFilePath = do
-    let regUrl = defaultFcombHost ++ regEndpoint
+register :: String -> String -> String -> String -> FilePath -> FilePath-> IO String
+register fcombHost regEndpoint regToken cert caFilePath certFilePath = do
+    let regUrl = fcombHost ++ regEndpoint
     putStrLn $ "Registering with fcomb: " ++ regUrl
 
     let regReq = encode $ RegRequest cert
-        regReqOpts = defaults  & param "access_token" .~ [pack token]
+        regReqOpts = defaults  & param "access_token" .~ [pack regToken]
                                & header "content-Type" .~ ["application/json"]
 
     regResp <- postWith regReqOpts regUrl regReq
     let nodeLocation = regResp ^. responseHeader "location"
-        nodeUrl = defaultFcombHost ++ C.unpack nodeLocation
+        nodeUrl = fcombHost ++ C.unpack nodeLocation
         nodeToken = regResp ^. responseHeader "authorization"
-        [authTerm, authToken] = C.split ' ' nodeToken
         nodeOpts = defaults & header "Authorization" .~ [nodeToken]
 
     putStrLn $ "Received registration response. Obtaining node: " ++ nodeUrl
@@ -66,3 +64,5 @@ register token cert caFilePath certFilePath = do
     writeFile caFilePath (rootCertificate respForm)
     putStrLn $ "Writing signed certificate to " ++ certFilePath
     writeFile certFilePath (signedCertificate respForm)
+
+    return $ C.unpack nodeToken
