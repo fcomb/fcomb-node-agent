@@ -1,5 +1,6 @@
 module Docker (
     startDocker
+    , getDockerVersion
 ) where
 
 import System.Process
@@ -7,9 +8,6 @@ import System.Process
 
 startDocker :: FilePath -> FilePath -> FilePath -> FilePath -> String -> String -> IO ProcessHandle
 startDocker dockerBinPath keyFilePath certFilePath caFilePath dockerHost dockerSocket = do
-    putStrLn "Checking docker version:"
-    callCommand $ dockerBinPath ++ " -v"
-
     let daemonOpt = " daemon"
         bindOpt = " -H " ++ dockerHost ++ " -H " ++ dockerSocket
         certOpt = " --tlscert " ++ certFilePath ++
@@ -24,4 +22,4 @@ startDocker dockerBinPath keyFilePath certFilePath caFilePath dockerHost dockerS
 
 getDockerVersion :: FilePath -> IO String
 getDockerVersion dockerBinPath =
-    readCreateProcess (shell dockerBinPath) ""
+    readCreateProcess (proc dockerBinPath ["-v"]) ""
