@@ -29,13 +29,13 @@ startAgent = do
         then return ()
         else do
             putStrLn $ "Creating directory for fcomb home " ++ fcombHome
-            createDirectory fcombHome
+            createDirectoryIfMissing True fcombHome
 
     doesDirectoryExist dockerDir >>= \exists -> if exists
         then return ()
         else do
             putStrLn $ "Creating directory for docker home " ++ dockerDir
-            createDirectory dockerDir
+            createDirectoryIfMissing True dockerDir
 
     doesFileExist dockerNewBinPath >>= \exists -> if exists
         then do
