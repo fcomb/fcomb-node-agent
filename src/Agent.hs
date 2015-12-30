@@ -1,6 +1,5 @@
 module Agent (
-    startAgent,
-    AgentException
+    startAgent
 ) where
 
 import Http
@@ -69,16 +68,19 @@ startAgent = do
 
 -- shortcut to the registration procedure
     putStrLn $ "Loading config from " ++ configFilePath
-    loadConf >>= \conf -> if null (nodeToken conf)
+    conf <- loadConf
+    if null (nodeId conf)
         then registerAndSaveToken
-        else return ()
+        else do
+            putStrLn $ "Found registered node " ++ (nodeId conf)
+            return ()
 
     putStrLn "Checking docker version:"
     getDockerVersion dockerBinPath >>= \version ->
         putStrLn version
 
     putStrLn "Initializing docker daemon"
-    dockerHandle <- startDocker dockerSymbolicLink keyFilePath certFilePath caFilePath defaultDockerHost defaultDockerSocket
+    dockerHandle <- startDocker dockerSymbolicLink keyFilePath certFilePath caFilePath (dockerHost conf) defaultDockerSocket
 
     putStrLn "Docker daemon has been started. Entering maintenance loop"
     maintenanceLoop dockerHandle 0
@@ -98,12 +100,13 @@ startAgent = do
                             throw $ AgentException $ "terminating after " ++ (show respawns) ++ " respawns"
                         else
                             return ()
-                    putStrLn "Respawning docker daemon"
-                    newHandle <- startDocker dockerSymbolicLink keyFilePath certFilePath caFilePath defaultDockerHost defaultDockerSocket
-                    maintenanceLoop newHandle (respawns + 1)
-                _ -> return ()
 
-            maintenanceLoop dockerHandle respawns
+                    putStrLn "Respawning docker daemon"
+                    conf <- loadConf
+                    newHandle <- startDocker dockerSymbolicLink keyFilePath certFilePath caFilePath (dockerHost conf) defaultDockerSocket
+                    maintenanceLoop newHandle (respawns + 1)
+                _ ->
+                    maintenanceLoop dockerHandle respawns
 
 
 registerAndSaveToken :: IO ()
@@ -129,8 +132,8 @@ registerAndSaveToken = do
        then removeFile caFilePath
        else return ()
 
+    conf <- loadConf
     cert <- createCerts keyFilePath
-    nodeToken <- register defaultFcombHost regEndpoint token cert caFilePath certFilePath
+    nodeId <- register (fcombHost conf) nodesEndpoint token cert caFilePath certFilePath
 
-    loadConf >>= \conf ->
-        saveConf (conf {nodeToken = nodeToken})
+    saveConf (conf {nodeId = nodeId})

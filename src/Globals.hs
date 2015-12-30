@@ -4,7 +4,7 @@ module Globals (
 
 dockerBinaryURL       = "https://get.docker.com/builds/Linux/x86_64/docker-latest"
 defaultFcombHost      = "https://api.fcomb.io"
-regEndpoint           = "/v1/agent/nodes/join"
+nodesEndpoint         = "/v1/agent/nodes/"
 
 agentVersion          = "0.1.0"
 defaultDockerHost     = "tcp://0.0.0.0:2375"

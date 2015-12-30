@@ -1,4 +1,3 @@
-{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Http (
@@ -9,7 +8,6 @@ module Http (
 import System.Posix.Files
 import System.FilePath
 import Network.Wreq
-import GHC.Generics
 import Data.Maybe
 import Data.Aeson
 import Data.Text
@@ -17,19 +15,32 @@ import Control.Lens
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString.Char8 as C
 
-data RegRequest = RegRequest {
+data JoinRequest = JoinRequest {
     certificationRequest :: String
-} deriving Generic
+}
 
-instance ToJSON RegRequest
+instance ToJSON JoinRequest where
+    toJSON (JoinRequest certificationRequest) =
+        object ["certificationRequest" Data.Aeson..= certificationRequest]
+
+
+data EmptyRequest = EmptyRequest
+
+instance ToJSON EmptyRequest where
+    toJSON EmptyRequest =
+        object []
 
 
 data NodeResponseForm = NodeResponseForm {
+    nodeId :: Int,
     rootCertificate :: String,
     signedCertificate :: String
-} deriving Generic
+}
 
-instance FromJSON NodeResponseForm
+instance FromJSON NodeResponseForm where
+    parseJSON (Object v) = NodeResponseForm <$> v .: "id"
+                                            <*> v .: "rootCertificate"
+                                            <*> v .: "signedCertificate"
 
 
 download :: String -> FilePath -> IO ()
@@ -39,25 +50,26 @@ download url path = do
 
 
 register :: String -> String -> String -> String -> FilePath -> FilePath-> IO String
-register fcombHost regEndpoint regToken cert caFilePath certFilePath = do
-    let regUrl = fcombHost ++ regEndpoint
-    putStrLn $ "Registering with fcomb: " ++ regUrl
+register fcombHost nodesEndpoint joinToken cert caFilePath certFilePath = do
+    let joinUrl = fcombHost ++ nodesEndpoint ++ "join"
+    putStrLn $ "Joining with fcomb: " ++ joinUrl
 
-    let regReq = encode $ RegRequest cert
-        regReqOpts = defaults  & param "access_token" .~ [pack regToken]
-                               & header "content-Type" .~ ["application/json"]
+    let joinReq = encode $ JoinRequest cert
+        joinReqOpts = defaults  & param "access_token" .~ [pack joinToken]
+                                & header "content-Type" .~ ["application/json"]
 
-    regResp <- postWith regReqOpts regUrl regReq
-    let nodeLocation = regResp ^. responseHeader "location"
+    joinResp <- postWith joinReqOpts joinUrl joinReq
+    let nodeLocation = joinResp ^. responseHeader "location"
         nodeUrl = fcombHost ++ C.unpack nodeLocation
-        nodeToken = regResp ^. responseHeader "authorization"
+        nodeToken = joinResp ^. responseHeader "authorization"
         nodeOpts = defaults & header "Authorization" .~ [nodeToken]
 
-    putStrLn $ "Received registration response. Obtaining node: " ++ nodeUrl
+    putStrLn $ "Received joind response. Obtaining node: " ++ nodeUrl
     nodeResp <- getWith nodeOpts nodeUrl
     let body = nodeResp ^. responseBody
         maybeRespForm = decode body :: Maybe NodeResponseForm
         respForm = fromJust maybeRespForm
+        regUrl = fcombHost ++ nodesEndpoint ++ show (nodeId respForm) ++ "/register"
 
     putStrLn "Received node response with certificates"
     putStrLn $ "Writing root certificate to " ++ caFilePath
@@ -65,4 +77,7 @@ register fcombHost regEndpoint regToken cert caFilePath certFilePath = do
     putStrLn $ "Writing signed certificate to " ++ certFilePath
     writeFile certFilePath (signedCertificate respForm)
 
-    return $ C.unpack nodeToken
+    putStrLn $ "Finally registering the node " ++ regUrl
+    regResp <- postWith nodeOpts regUrl (encode EmptyRequest)
+
+    return $ show (nodeId respForm)

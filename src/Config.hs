@@ -16,7 +16,7 @@ import Control.Lens
 data Configuration = Configuration {
     dockerHost :: String
     , fcombHost :: String
-    , nodeToken :: String
+    , nodeId :: String
 } deriving Generic
 
 instance ToJSON Configuration
