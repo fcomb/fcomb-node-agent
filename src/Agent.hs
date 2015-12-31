@@ -62,19 +62,17 @@ startAgent = do
 
 -- shortcut to the registration procedure
     putStrLn $ "Loading config from " ++ configFilePath
-    conf <- loadConf
-    if null (nodeId conf)
-        then do
-          (nodeId, nodeToken) <- registerAndSaveToken
-          doesFileExist configFilePath >>= \exists -> if exists
-              then return ()
-              else do
-                  putStrLn $ "Update config " ++ configFilePath
-                  saveConf $ Configuration defaultDockerHost defaultFcombHost nodeId nodeToken
-
-        else do
-            putStrLn $ "Found registered node " ++ (nodeId conf)
-            return ()
+    confOpt <- loadConf
+    conf <- case confOpt of
+                Nothing -> do
+                    (nodeId, nodeToken) <- registerAndSaveToken
+                    putStrLn $ "Update config " ++ configFilePath
+                    let conf' = Configuration defaultDockerHost defaultFcombHost nodeId nodeToken
+                    saveConf conf'
+                    return conf'
+                Just conf' -> do
+                    putStrLn $ "Found registered node " ++ (nodeId conf')
+                    return conf'
 
     putStrLn "Checking docker version:"
     getDockerVersion dockerBinPath >>= \version ->
@@ -103,7 +101,7 @@ startAgent = do
                             return ()
 
                     putStrLn "Respawning docker daemon"
-                    conf <- loadConf
+                    Just conf <- loadConf
                     newHandle <- startDocker dockerSymbolicLink keyFilePath certFilePath caFilePath (dockerHost conf) defaultDockerSocket
                     maintenanceLoop newHandle (respawns + 1)
                 _ ->
@@ -133,7 +131,7 @@ registerAndSaveToken = do
        then removeFile caFilePath
        else return ()
 
-    conf <- loadConf
+    Just conf <- loadConf
     cert <- createCerts keyFilePath
     (nodeId, nodeToken) <- joinNode (fcombHost conf) nodesEndpoint token cert caFilePath certFilePath
 

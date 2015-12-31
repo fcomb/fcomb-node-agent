@@ -24,20 +24,21 @@ instance ToJSON Configuration
 instance FromJSON Configuration
 
 
-loadConf :: IO Configuration
+loadConf :: IO (Maybe Configuration)
 loadConf = do
     maybeConf <- decodeFile configFilePath :: IO (Maybe Configuration)
     -- todo: error handling
-    let conf = fromJust maybeConf
-        -- todo: apply lenses
-        confWithDockerHost = if null (dockerHost conf)
-            then conf { dockerHost = defaultDockerHost}
-            else conf
-        confWithDockerHostWithFcombHost = if null (fcombHost conf)
-            then conf { fcombHost = defaultFcombHost}
-            else conf
-
-    return confWithDockerHostWithFcombHost
+    case maybeConf of
+      Nothing -> return Nothing
+      Just conf ->
+        return $ Just confWithDockerHostWithFcombHost
+        where
+            confWithDockerHost = if null (dockerHost conf)
+                then conf { dockerHost = defaultDockerHost}
+                else conf
+            confWithDockerHostWithFcombHost = if null (fcombHost conf)
+                then conf { fcombHost = defaultFcombHost}
+                else conf
 
 
 saveConf :: Configuration -> IO ()
