@@ -81,6 +81,8 @@ startAgent = do
     putStrLn "Initializing docker daemon"
     dockerHandle <- startDocker dockerSymbolicLink keyFilePath certFilePath caFilePath dockerHost dockerSocket
 
+    registerNode (nodeId conf) (nodeToken conf)
+
     putStrLn "Docker daemon has been started. Entering maintenance loop"
     maintenanceLoop dockerHandle 0
 
@@ -131,7 +133,7 @@ registerAndSaveToken = do
        else return ()
 
     cert <- createCerts keyFilePath
-    (nodeId, nodeToken) <- joinNode fcombHost nodesEndpoint token cert caFilePath certFilePath
+    (nodeId, nodeToken) <- joinNode token cert
 
     -- saveConf (conf {nodeId = show nodeId})
 

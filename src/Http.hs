@@ -2,9 +2,11 @@
 
 module Http (
     download,
-    joinNode
+    joinNode,
+    registerNode
 ) where
 
+import Globals
 import System.Posix.Files
 import System.FilePath
 import Network.Wreq
@@ -14,6 +16,7 @@ import Data.Text
 import Control.Lens
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString.Char8 as C
+import qualified Data.List as L
 
 data JoinRequest = JoinRequest {
     certificationRequest :: String
@@ -49,19 +52,20 @@ download url path = do
     BL.writeFile path (r ^. responseBody)
 
 
-joinNode :: String -> String -> String -> String -> FilePath -> FilePath-> IO (String, String)
-joinNode fcombHost nodesEndpoint joinToken cert caFilePath certFilePath = do
+joinNode :: String -> String -> IO (String, String)
+joinNode joinToken cert = do
     let joinUrl = fcombHost ++ nodesEndpoint ++ "join"
     putStrLn $ "Joining with fcomb: " ++ joinUrl
 
     let joinReq = encode $ JoinRequest cert
         joinReqOpts = defaults & header "content-Type" .~ ["application/json"]
+                               & header "Authorization" .~ [C.pack $ "Token " ++ joinToken]
 
     joinResp <- postWith joinReqOpts joinUrl joinReq
     let nodeLocation = joinResp ^. responseHeader "location"
         nodeUrl = fcombHost ++ C.unpack nodeLocation
-        nodeToken = joinResp ^. responseHeader "authorization"
-        nodeOpts = defaults & header "Authorization" .~ [C.append "Token " nodeToken]
+        nodeToken = C.unpack . L.last . C.split ' ' $ joinResp ^. responseHeader "authorization"
+        nodeOpts = defaults & header "Authorization" .~ [C.pack $ "Token " ++ nodeToken]
 
     putStrLn $ "Received joind response. Obtaining node: " ++ nodeUrl
     nodeResp <- getWith nodeOpts nodeUrl
@@ -75,10 +79,10 @@ joinNode fcombHost nodesEndpoint joinToken cert caFilePath certFilePath = do
     putStrLn $ "Writing signed certificate to " ++ certFilePath
     writeFile certFilePath (signedCertificate respForm)
 
-    return $ (show $ nodeId respForm, C.unpack nodeToken)
+    return $ (show $ nodeId respForm, nodeToken)
 
-register :: String -> String -> String -> String -> IO ()
-register fcombHost nodesEndpoint nodeId nodeToken = do
+registerNode :: String -> String -> IO ()
+registerNode nodeId nodeToken = do
     let regUrl = fcombHost ++ nodesEndpoint ++ nodeId ++ "/register"
         nodeOpts = defaults & header "Authorization" .~ [C.pack $ "Token " ++ nodeToken]
     putStrLn $ "Finally registering the node " ++ regUrl
