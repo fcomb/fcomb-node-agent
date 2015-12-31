@@ -67,7 +67,7 @@ startAgent = do
                 Nothing -> do
                     (nodeId, nodeToken) <- registerAndSaveToken
                     putStrLn $ "Update config " ++ configFilePath
-                    let conf' = Configuration defaultDockerHost defaultFcombHost nodeId nodeToken
+                    let conf' = Configuration nodeId nodeToken
                     saveConf conf'
                     return conf'
                 Just conf' -> do
@@ -79,7 +79,7 @@ startAgent = do
         putStrLn version
 
     putStrLn "Initializing docker daemon"
-    dockerHandle <- startDocker dockerSymbolicLink keyFilePath certFilePath caFilePath (dockerHost conf) defaultDockerSocket
+    dockerHandle <- startDocker dockerSymbolicLink keyFilePath certFilePath caFilePath dockerHost dockerSocket
 
     putStrLn "Docker daemon has been started. Entering maintenance loop"
     maintenanceLoop dockerHandle 0
@@ -101,8 +101,7 @@ startAgent = do
                             return ()
 
                     putStrLn "Respawning docker daemon"
-                    Just conf <- loadConf
-                    newHandle <- startDocker dockerSymbolicLink keyFilePath certFilePath caFilePath (dockerHost conf) defaultDockerSocket
+                    newHandle <- startDocker dockerSymbolicLink keyFilePath certFilePath caFilePath dockerHost dockerSocket
                     maintenanceLoop newHandle (respawns + 1)
                 _ ->
                     maintenanceLoop dockerHandle respawns
@@ -131,10 +130,9 @@ registerAndSaveToken = do
        then removeFile caFilePath
        else return ()
 
-    Just conf <- loadConf
     cert <- createCerts keyFilePath
-    (nodeId, nodeToken) <- joinNode (fcombHost conf) nodesEndpoint token cert caFilePath certFilePath
+    (nodeId, nodeToken) <- joinNode fcombHost nodesEndpoint token cert caFilePath certFilePath
 
-    saveConf (conf {nodeId = show nodeId})
+    -- saveConf (conf {nodeId = show nodeId})
 
     return (nodeId, nodeToken)

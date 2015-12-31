@@ -3,12 +3,12 @@ module Globals (
 ) where
 
 dockerBinaryURL       = "https://get.docker.com/builds/Linux/x86_64/docker-latest"
-defaultFcombHost      = "https://api.fcomb.io"
+fcombHost             = "https://api.fcomb.io"
 nodesEndpoint         = "/v1/agent/nodes/"
 
 agentVersion          = "0.1.0"
-defaultDockerHost     = "tcp://0.0.0.0:2375"
-defaultDockerSocket   = "unix:///var/run/docker.sock"
+dockerHost            = "tcp://0.0.0.0:2375"
+dockerSocket          = "unix:///var/run/docker.sock"
 
 fcombHome   = "/etc/fcomb/agent/"
 dockerDir   = "/usr/lib/fcomb/"
