@@ -14,9 +14,10 @@ import Globals
 import Control.Lens
 
 data Configuration = Configuration {
-    dockerHost :: String
+    dockerHost  :: String
     , fcombHost :: String
-    , nodeId :: String
+    , nodeId    :: String
+    , nodeToken :: String
 } deriving Generic
 
 instance ToJSON Configuration

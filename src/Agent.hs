@@ -60,17 +60,18 @@ startAgent = do
 
             createSymbolicLink dockerBinPath dockerSymbolicLink
 
-    doesFileExist configFilePath >>= \exists -> if exists
-        then return ()
-        else do
-            putStrLn $ "Config not found, writing defaults to " ++ configFilePath
-            saveConf $ Configuration defaultDockerHost defaultFcombHost ""
-
 -- shortcut to the registration procedure
     putStrLn $ "Loading config from " ++ configFilePath
     conf <- loadConf
     if null (nodeId conf)
-        then registerAndSaveToken
+        then do
+          (nodeId, nodeToken) <- registerAndSaveToken
+          doesFileExist configFilePath >>= \exists -> if exists
+              then return ()
+              else do
+                  putStrLn $ "Update config " ++ configFilePath
+                  saveConf $ Configuration defaultDockerHost defaultFcombHost nodeId nodeToken
+
         else do
             putStrLn $ "Found registered node " ++ (nodeId conf)
             return ()
@@ -109,7 +110,7 @@ startAgent = do
                     maintenanceLoop dockerHandle respawns
 
 
-registerAndSaveToken :: IO ()
+registerAndSaveToken :: IO (String, String)
 registerAndSaveToken = do
     args <- getArgs
     token <- case args of
@@ -134,6 +135,8 @@ registerAndSaveToken = do
 
     conf <- loadConf
     cert <- createCerts keyFilePath
-    nodeId <- register (fcombHost conf) nodesEndpoint token cert caFilePath certFilePath
+    (nodeId, nodeToken) <- joinNode (fcombHost conf) nodesEndpoint token cert caFilePath certFilePath
 
-    saveConf (conf {nodeId = nodeId})
+    saveConf (conf {nodeId = show nodeId})
+
+    return (nodeId, nodeToken)

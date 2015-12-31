@@ -2,7 +2,7 @@
 
 module Http (
     download,
-    register
+    joinNode
 ) where
 
 import System.Posix.Files
@@ -49,14 +49,13 @@ download url path = do
     BL.writeFile path (r ^. responseBody)
 
 
-register :: String -> String -> String -> String -> FilePath -> FilePath-> IO String
-register fcombHost nodesEndpoint joinToken cert caFilePath certFilePath = do
+joinNode :: String -> String -> String -> String -> FilePath -> FilePath-> IO (String, String)
+joinNode fcombHost nodesEndpoint joinToken cert caFilePath certFilePath = do
     let joinUrl = fcombHost ++ nodesEndpoint ++ "join"
     putStrLn $ "Joining with fcomb: " ++ joinUrl
 
     let joinReq = encode $ JoinRequest cert
-        joinReqOpts = defaults  & param "access_token" .~ [pack joinToken]
-                                & header "content-Type" .~ ["application/json"]
+        joinReqOpts = defaults & header "content-Type" .~ ["application/json"]
 
     joinResp <- postWith joinReqOpts joinUrl joinReq
     let nodeLocation = joinResp ^. responseHeader "location"
@@ -71,13 +70,17 @@ register fcombHost nodesEndpoint joinToken cert caFilePath certFilePath = do
         respForm = fromJust maybeRespForm
         regUrl = fcombHost ++ nodesEndpoint ++ show (nodeId respForm) ++ "/register"
 
-    putStrLn "Received node response with certificates"
     putStrLn $ "Writing root certificate to " ++ caFilePath
     writeFile caFilePath (rootCertificate respForm)
     putStrLn $ "Writing signed certificate to " ++ certFilePath
     writeFile certFilePath (signedCertificate respForm)
 
+    return $ (show $ nodeId respForm, C.unpack nodeToken)
+
+register :: String -> String -> String -> String -> IO ()
+register fcombHost nodesEndpoint nodeId nodeToken = do
+    let regUrl = fcombHost ++ nodesEndpoint ++ nodeId ++ "/register"
+        nodeOpts = defaults & header "Authorization" .~ [C.pack nodeToken]
     putStrLn $ "Finally registering the node " ++ regUrl
     regResp <- postWith nodeOpts regUrl (encode EmptyRequest)
-
-    return $ show (nodeId respForm)
+    return ()
