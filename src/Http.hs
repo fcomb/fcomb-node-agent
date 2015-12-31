@@ -61,7 +61,7 @@ joinNode fcombHost nodesEndpoint joinToken cert caFilePath certFilePath = do
     let nodeLocation = joinResp ^. responseHeader "location"
         nodeUrl = fcombHost ++ C.unpack nodeLocation
         nodeToken = joinResp ^. responseHeader "authorization"
-        nodeOpts = defaults & header "Authorization" .~ [nodeToken]
+        nodeOpts = defaults & header "Authorization" .~ [C.append "Token " nodeToken]
 
     putStrLn $ "Received joind response. Obtaining node: " ++ nodeUrl
     nodeResp <- getWith nodeOpts nodeUrl
@@ -80,7 +80,7 @@ joinNode fcombHost nodesEndpoint joinToken cert caFilePath certFilePath = do
 register :: String -> String -> String -> String -> IO ()
 register fcombHost nodesEndpoint nodeId nodeToken = do
     let regUrl = fcombHost ++ nodesEndpoint ++ nodeId ++ "/register"
-        nodeOpts = defaults & header "Authorization" .~ [C.pack nodeToken]
+        nodeOpts = defaults & header "Authorization" .~ [C.pack $ "Token " ++ nodeToken]
     putStrLn $ "Finally registering the node " ++ regUrl
     regResp <- postWith nodeOpts regUrl (encode EmptyRequest)
     return ()
