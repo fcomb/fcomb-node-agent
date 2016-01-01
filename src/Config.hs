@@ -26,10 +26,10 @@ instance FromJSON Configuration
 loadConf :: IO (Maybe Configuration)
 loadConf = do
     doesFileExist configFilePath >>= \exists ->
-        case exists of
-            True ->
+        if exists
+            then
               decodeFile configFilePath :: IO (Maybe Configuration)
-            False ->
+            else
               return Nothing
 
 
