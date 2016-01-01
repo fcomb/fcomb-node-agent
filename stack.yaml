@@ -1,5 +1,8 @@
-resolver: nightly-2015-12-25
+resolver: nightly-2016-01-01
+
 packages:
 - '.'
+
 extra-deps: []
+
 flags: {}

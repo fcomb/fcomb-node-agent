@@ -67,7 +67,7 @@ joinNode joinToken cert = do
         nodeToken = C.unpack . L.last . C.split ' ' $ joinResp ^. responseHeader "authorization"
         nodeOpts = defaults & header "Authorization" .~ [C.pack $ "Token " ++ nodeToken]
 
-    putStrLn $ "Received joind response. Obtaining node: " ++ nodeUrl
+    putStrLn $ "Received join response. Obtaining node: " ++ nodeUrl
     nodeResp <- getWith nodeOpts nodeUrl
     let body = nodeResp ^. responseBody
         maybeRespForm = decode body :: Maybe NodeResponseForm
