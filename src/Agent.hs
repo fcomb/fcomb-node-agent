@@ -81,6 +81,7 @@ startAgent = do
     putStrLn "Initializing docker daemon"
     dockerHandle <- startDocker dockerSymbolicLink keyFilePath certFilePath caFilePath dockerHost dockerSocket
 
+    -- TODO: kill docker or try againt if status isn't successful
     registerNode (nodeId conf) (nodeToken conf)
 
     putStrLn "Docker daemon has been started. Entering maintenance loop"
