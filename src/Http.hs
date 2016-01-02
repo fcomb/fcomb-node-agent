@@ -82,7 +82,7 @@ joinNode joinToken cert = do
     return $ (show $ nodeId respForm, nodeToken)
 
 
---| TODO: return status as Either
+-- TODO: return status as Either
 registerNode :: String -> String -> IO ()
 registerNode nodeId nodeToken = do
     let regUrl = fcombHost ++ nodesEndpoint ++ nodeId ++ "/register"
