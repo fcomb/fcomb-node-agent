@@ -91,7 +91,7 @@ startAgent = do
         Left message -> do
             putStrLn $ "Failed to register node: " ++ message
             putStrLn "Killing docker instance"
-            terminateProcess dockerHandle
+            terminationLoop dockerHandle 0
 
     putStrLn "Over"
 
@@ -114,6 +114,23 @@ startAgent = do
                     maintenanceLoop newHandle (respawns + 1)
                 _ ->
                     maintenanceLoop dockerHandle respawns
+
+        terminationLoop :: ProcessHandle -> Int -> IO ()
+        terminationLoop dockerHandle attempts = do
+            threadDelay $ fromInteger heartBeatInterval
+
+            getProcessExitCode dockerHandle >>= \case
+                Just exitCode -> putStrLn $ "Docker successfully exited with code: " ++ (show exitCode)
+                _ -> do
+                    if attempts > 3
+                        then
+                            throw $ AgentException $ "Failed to kill docker after " ++ (show attempts) ++ " attempts"
+                        else
+                            return ()
+
+                    putStrLn "Sending sigterm to docker daemon"
+                    terminateProcess dockerHandle
+                    terminationLoop dockerHandle (attempts + 1)
 
 
 registerAndSaveToken :: IO (String, String)
