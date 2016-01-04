@@ -1,3 +1,5 @@
+{-# LANGUAGE LambdaCase #-}
+
 module Main where
 
 import System.Exit
@@ -25,8 +27,8 @@ catchAny = Control.Exception.catch
 
 checkPidFile :: FilePath -> IO ()
 checkPidFile pidFile =
-    doesFileExist pidFile >>= \exists -> if exists
-        then do
+    doesFileExist pidFile >>= \case
+        True -> do
             pid <- readFile pidFile
             let procFile = "/proc/" ++ pid
             doesFileExist procFile >>= \exists -> if exists
@@ -34,8 +36,7 @@ checkPidFile pidFile =
                     putStrLn $ "Found pid file, make sure that fcomb-agent is not running or remove " ++ pidFile
                 else do
                     return ()
-        else
-            return ()
+        _ -> return ()
 
 
 createPidFile :: FilePath -> IO ()

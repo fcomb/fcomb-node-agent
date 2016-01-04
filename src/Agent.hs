@@ -1,3 +1,5 @@
+{-# LANGUAGE LambdaCase #-}
+
 module Agent (
     startAgent
 ) where
@@ -25,28 +27,27 @@ startAgent :: IO ()
 startAgent = do
     putStrLn $ "Running fcomb agent version " ++ agentVersion
 
-    doesDirectoryExist fcombHome >>= \exists -> if exists
-        then return ()
-        else do
+    doesDirectoryExist fcombHome >>= \case
+        False -> do
             putStrLn $ "Creating directory for fcomb home " ++ fcombHome
             createDirectoryIfMissing True fcombHome
+        _ -> return ()
 
-    doesDirectoryExist dockerDir >>= \exists -> if exists
-        then return ()
-        else do
+    doesDirectoryExist dockerDir >>= \case
+        False -> do
             putStrLn $ "Creating directory for docker home " ++ dockerDir
             createDirectoryIfMissing True dockerDir
+        _ -> return ()
 
-    doesFileExist dockerNewBinPath >>= \exists -> if exists
-        then do
+    doesFileExist dockerNewBinPath >>= \case
+        True -> do
             putStrLn "Updating docker binary"
             copyFile dockerNewBinPath dockerBinPath
             removeFile dockerNewBinPath
-        else return ()
+        _ -> return ()
 
-    doesFileExist dockerBinPath >>= \exists -> if exists
-        then return ()
-        else do
+    doesFileExist dockerBinPath >>= \case
+        False -> do
             putStrLn "Downloading docker binary..."
             download dockerBinaryURL dockerBinPath
 
@@ -54,16 +55,16 @@ startAgent = do
             setPermissions dockerBinPath (p {executable = True})
 
             putStrLn $ "Creating symbolic link to docker at " ++ dockerSymbolicLink
-            doesFileExist dockerSymbolicLink >>= \exists -> if exists
-                then removeLink dockerSymbolicLink
-                else return ()
+            doesFileExist dockerSymbolicLink >>= \case
+                True -> removeLink dockerSymbolicLink
+                _ -> return ()
 
             createSymbolicLink dockerBinPath dockerSymbolicLink
+        _ -> return ()
 
 -- shortcut to the registration procedure
     putStrLn $ "Loading config from " ++ configFilePath
-    confOpt <- loadConf
-    conf <- case confOpt of
+    conf <- loadConf >>= \case
                 Nothing -> do
                     (nodeId, nodeToken) <- registerAndSaveToken
                     putStrLn $ "Update config " ++ configFilePath
@@ -75,17 +76,22 @@ startAgent = do
                     return conf'
 
     putStrLn "Checking docker version:"
-    getDockerVersion dockerBinPath >>= \version ->
-        putStrLn version
+    getDockerVersion dockerBinPath >>= putStrLn
 
     putStrLn "Initializing docker daemon"
     dockerHandle <- startDocker dockerSymbolicLink keyFilePath certFilePath caFilePath dockerHost dockerSocket
+    putStrLn "Docker daemon has been started. Registering the node"
 
-    -- TODO: kill docker or try againt if status isn't successful
-    registerNode (nodeId conf) (nodeToken conf)
+    regStatus <- registerNode (nodeId conf) (nodeToken conf)
 
-    putStrLn "Docker daemon has been started. Entering maintenance loop"
-    maintenanceLoop dockerHandle 0
+    case regStatus of
+        Right _ -> do
+            putStrLn "Registration successful. Entering docker maintenance loop"
+            maintenanceLoop dockerHandle 0
+        Left message -> do
+            putStrLn $ "Failed to register node: " ++ message
+            putStrLn "Killing docker instance"
+            terminateProcess dockerHandle
 
     putStrLn "Over"
 
@@ -95,8 +101,8 @@ startAgent = do
             threadDelay $ fromInteger heartBeatInterval
             --updateDocker dockerBinPath dockerNewBinPath
 
-            getProcessExitCode dockerHandle >>= \maybeExitCode -> case maybeExitCode of
-                Just code -> do
+            getProcessExitCode dockerHandle >>= \case
+                Just exitCode -> do
                     if respawns > 3
                         then
                             throw $ AgentException $ "terminating after " ++ (show respawns) ++ " respawns"
@@ -121,17 +127,17 @@ registerAndSaveToken = do
            throw $ AgentException "Token is empty! Provide token as the first argument to the agent"
 
     putStrLn $ "Removing old certificates: " ++ keyFilePath ++ ", " ++ certFilePath ++ ", " ++ caFilePath
-    doesFileExist keyFilePath >>= \exists -> if exists
-       then removeFile keyFilePath
-       else return ()
+    doesFileExist keyFilePath >>= \case
+        True -> removeFile keyFilePath
+        _ -> return ()
 
-    doesFileExist certFilePath >>= \exists -> if exists
-       then removeFile certFilePath
-       else return ()
+    doesFileExist certFilePath >>= \case
+        True -> removeFile certFilePath
+        _ -> return ()
 
-    doesFileExist caFilePath >>= \exists -> if exists
-       then removeFile caFilePath
-       else return ()
+    doesFileExist caFilePath >>= \case
+        True -> removeFile caFilePath
+        _ -> return ()
 
     cert <- createCerts keyFilePath
     (nodeId, nodeToken) <- joinNode token cert

@@ -65,9 +65,16 @@ joinNode joinToken cert = do
     let nodeLocation = joinResp ^. responseHeader "location"
         nodeUrl = fcombHost ++ C.unpack nodeLocation
         nodeToken = C.unpack . L.last . C.split ' ' $ joinResp ^. responseHeader "authorization"
-        nodeOpts = defaults & header "Authorization" .~ [C.pack $ "Token " ++ nodeToken]
 
+    getNode nodeUrl nodeToken
+
+
+getNode :: String -> String -> IO (String, String)
+getNode nodeUrl nodeToken = do
     putStrLn $ "Received join response. Obtaining node: " ++ nodeUrl
+
+    let nodeOpts = defaults & header "Authorization" .~ [C.pack $ "Token " ++ nodeToken]
+
     nodeResp <- getWith nodeOpts nodeUrl
     let body = nodeResp ^. responseBody
         maybeRespForm = decode body :: Maybe NodeResponseForm
@@ -79,14 +86,23 @@ joinNode joinToken cert = do
     putStrLn $ "Writing signed certificate to " ++ certFilePath
     writeFile certFilePath (signedCertificate respForm)
 
-    return $ (show $ nodeId respForm, nodeToken)
+    return (show $ nodeId respForm, nodeToken)
 
 
--- TODO: return status as Either
-registerNode :: String -> String -> IO ()
+registerNode :: String -> String -> IO (Either String Bool)
 registerNode nodeId nodeToken = do
     let regUrl = fcombHost ++ nodesEndpoint ++ nodeId ++ "/register"
         nodeOpts = defaults & header "Authorization" .~ [C.pack $ "Token " ++ nodeToken]
     putStrLn $ "Finally registering the node " ++ regUrl
     regResp <- postWith nodeOpts regUrl (encode EmptyRequest)
-    return ()
+
+    let status = regResp ^. responseStatus
+        code = status ^. statusCode
+        message = show $ status ^. statusMessage
+        result = if code >= 200 && code < 300
+            then
+                Right True
+            else
+                Left message
+
+    return result
