@@ -41,3 +41,5 @@ executable fcomb-node-agent
                      , process
                      , yaml
                      , text
+                     , http-client
+                     , exceptions

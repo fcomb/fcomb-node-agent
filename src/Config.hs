@@ -25,10 +25,9 @@ instance FromJSON Configuration
 
 
 loadConf :: IO (Maybe Configuration)
-loadConf = do
-    doesFileExist configFilePath >>= \case
-        True -> decodeFile configFilePath :: IO (Maybe Configuration)
-        _ -> return Nothing
+loadConf = doesFileExist configFilePath >>= \case
+    True -> decodeFile configFilePath :: IO (Maybe Configuration)
+    _ -> return Nothing
 
 
 saveConf :: Configuration -> IO ()

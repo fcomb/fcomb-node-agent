@@ -48,7 +48,6 @@ startAgent = do
 
     doesFileExist dockerBinPath >>= \case
         False -> do
-            putStrLn "Downloading docker binary..."
             download dockerBinaryURL dockerBinPath
 
             p <- getPermissions dockerBinPath
@@ -80,7 +79,7 @@ startAgent = do
 
     putStrLn "Initializing docker daemon"
     dockerHandle <- startDocker dockerSymbolicLink keyFilePath certFilePath caFilePath dockerHost dockerSocket
-    putStrLn "Docker daemon has been started. Registering the node"
+    putStrLn "Docker daemon has been started"
 
     regStatus <- registerNode (nodeId conf) (nodeToken conf)
 
