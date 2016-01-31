@@ -94,7 +94,7 @@ joinNode joinToken cert = do
 
     let nodeLocation = joinResp ^. responseHeader "location"
         nodeUrl = fcombHost ++ C.unpack nodeLocation
-        nodeToken = C.unpack . L.last . C.split ' ' $ joinResp ^. responseHeader "authorization"
+        nodeToken = C.unpack . L.last . C.split ' ' $ joinResp ^. responseHeader "token"
 
     getNode nodeUrl nodeToken
 
