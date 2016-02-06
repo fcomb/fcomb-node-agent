@@ -1,0 +1,6 @@
+/var/log/fcomb/agent.log /var/log/fcomb/docker.log {
+  rotate 0
+  copytruncate
+  sharedscripts
+  maxsize 10M
+}

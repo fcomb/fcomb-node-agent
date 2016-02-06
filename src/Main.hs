@@ -2,23 +2,39 @@
 
 module Main where
 
+import System.Environment
 import System.Exit
 import System.Directory
 import System.Posix.Process
 import Control.Exception
 import Agent
-import Globals (fcombPidFile)
+import Globals (fcombPidFile, agentVersion)
+import Config
 
 
 main :: IO ()
 main = do
-    createPidFile fcombPidFile
-    catchAny startAgent $ \e -> do
-        putStrLn $ "Got an exception: " ++ show e
-        removeFile fcombPidFile
-        putStrLn $ "Removed pid file(" ++ fcombPidFile ++ ")"
-        exitFailure
-    exitSuccess
+    putStrLn $ "Running fcomb agent version " ++ agentVersion
+
+    getArgs >>= \case
+        "install" : tokenArg : [] -> do
+            putStrLn $ "Provided agent token: " ++ tokenArg
+            saveConf $ Configuration "" "" tokenArg
+            exitSuccess
+
+        "start" : [] -> do
+            createPidFile fcombPidFile
+            catchAny startAgent $ \e -> do
+                putStrLn $ "Got an exception: " ++ show e
+                removeFile fcombPidFile
+                putStrLn $ "Removed pid file(" ++ fcombPidFile ++ ")"
+                exitFailure
+
+        _ -> do
+            putStrLn "Usage: "
+            putStrLn "install [AgentToken]      | to prepare agent configuration with the given token"
+            putStrLn "start                     | to start the agent"
+            exitFailure
 
 
 catchAny :: IO a -> (SomeException -> IO a) -> IO a

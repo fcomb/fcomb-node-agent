@@ -10,8 +10,8 @@ agentVersion          = "0.1.0"
 dockerHost            = "tcp://0.0.0.0:2375"
 dockerSocket          = "unix:///var/run/docker.sock"
 
-fcombHome   = "/etc/fcomb/agent/"
-dockerDir   = "/usr/lib/fcomb/"
+fcombHome             = "/etc/fcomb/agent/"
+dockerHome            = "/usr/lib/fcomb/"
 
 fcombPidFile           = "/var/run/fcomb-agent.pid"
 dockerSymbolicLink     = "/usr/bin/docker"
@@ -23,8 +23,8 @@ configFileName         = "fcomb-agent.conf"
 dockerBinaryName       = "docker"
 dockerNewBinaryName    = "docker.new"
 
-dockerBinPath = dockerDir ++ dockerBinaryName
-dockerNewBinPath =  dockerDir ++ dockerNewBinaryName
+dockerBinPath = dockerHome ++ dockerBinaryName
+dockerNewBinPath =  dockerHome ++ dockerNewBinaryName
 configFilePath = fcombHome ++ configFileName
 keyFilePath = fcombHome ++ keyFileName
 certFilePath = fcombHome ++ certFileName

@@ -18,6 +18,7 @@ import System.Directory (doesFileExist)
 data Configuration = Configuration {
     nodeId    :: String
   , nodeToken :: String
+  , agentToken :: String
 } deriving Generic
 
 instance ToJSON Configuration

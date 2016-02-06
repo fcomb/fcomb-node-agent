@@ -25,54 +25,24 @@ instance Exception AgentException
 
 startAgent :: IO ()
 startAgent = do
-    putStrLn $ "Running fcomb agent version " ++ agentVersion
-
-    doesDirectoryExist fcombHome >>= \case
-        False -> do
-            putStrLn $ "Creating directory for fcomb home " ++ fcombHome
-            createDirectoryIfMissing True fcombHome
-        _ -> return ()
-
-    doesDirectoryExist dockerDir >>= \case
-        False -> do
-            putStrLn $ "Creating directory for docker home " ++ dockerDir
-            createDirectoryIfMissing True dockerDir
-        _ -> return ()
-
-    doesFileExist dockerNewBinPath >>= \case
-        True -> do
-            putStrLn "Updating docker binary"
-            copyFile dockerNewBinPath dockerBinPath
-            removeFile dockerNewBinPath
-        _ -> return ()
-
-    doesFileExist dockerBinPath >>= \case
-        False -> do
-            download dockerBinaryURL dockerBinPath
-
-            p <- getPermissions dockerBinPath
-            setPermissions dockerBinPath (p {executable = True})
-
-            putStrLn $ "Creating symbolic link to docker at " ++ dockerSymbolicLink
-            doesFileExist dockerSymbolicLink >>= \case
-                True -> removeLink dockerSymbolicLink
-                _ -> return ()
-
-            createSymbolicLink dockerBinPath dockerSymbolicLink
-        _ -> return ()
-
--- shortcut to the registration procedure
-    putStrLn $ "Loading config from " ++ configFilePath
     conf <- loadConf >>= \case
-                Nothing -> do
-                    (nodeId, nodeToken) <- registerAndSaveToken
-                    putStrLn $ "Update config " ++ configFilePath
-                    let conf' = Configuration nodeId nodeToken
-                    saveConf conf'
-                    return conf'
-                Just conf' -> do
-                    putStrLn $ "Found registered node " ++ (nodeId conf')
-                    return conf'
+        Just conf | null (agentToken conf) ->
+            throw $ AgentException $ "Config exists at " ++ configFilePath ++ " but missing a token. Please use the 'install' command with a new token"
+        Just conf | null (nodeId conf) || null (nodeToken conf) -> do
+            let token = agentToken conf
+            putStrLn $ "Registering node for agent token " ++ token
+            (nodeId, nodeToken) <- registerAgent token
+            let conf' = Configuration nodeId nodeToken token
+            saveConf conf'
+            return conf'
+        Just conf -> do
+            putStrLn $ "Found registered node " ++ (nodeId conf)
+            return conf
+        _ ->
+            throw $ AgentException $ "Config not found at " ++ configFilePath ++ " Please use the 'install' command with your agent token"
+
+    prepareHomes
+    prepareDockerBinaries
 
     putStrLn "Checking docker version:"
     getDockerVersion dockerBinPath >>= putStrLn
@@ -132,16 +102,48 @@ startAgent = do
                     terminationLoop dockerHandle (attempts + 1)
 
 
-registerAndSaveToken :: IO (String, String)
-registerAndSaveToken = do
-    args <- getArgs
-    token <- case args of
-       a1:as | not (null a1) -> do
-           putStrLn $ "Provided token: " ++ a1
-           return a1
-       _ ->
-           throw $ AgentException "Token is empty! Provide token as the first argument to the agent"
+prepareHomes :: IO ()
+prepareHomes = do
+    doesDirectoryExist fcombHome >>= \case
+        False -> do
+            putStrLn $ "Creating directory for fcomb home " ++ fcombHome
+            createDirectoryIfMissing True fcombHome
+        _ -> return ()
 
+    doesDirectoryExist dockerHome >>= \case
+        False -> do
+            putStrLn $ "Creating directory for docker home " ++ dockerHome
+            createDirectoryIfMissing True dockerHome
+        _ -> return ()
+
+
+prepareDockerBinaries :: IO ()
+prepareDockerBinaries = do
+    doesFileExist dockerNewBinPath >>= \case
+        True -> do
+            putStrLn "Updating docker binary"
+            copyFile dockerNewBinPath dockerBinPath
+            removeFile dockerNewBinPath
+        _ -> return ()
+
+    doesFileExist dockerBinPath >>= \case
+        False -> do
+            download dockerBinaryURL dockerBinPath
+
+            p <- getPermissions dockerBinPath
+            setPermissions dockerBinPath (p {executable = True})
+
+            putStrLn $ "Creating symbolic link to docker at " ++ dockerSymbolicLink
+            doesFileExist dockerSymbolicLink >>= \case
+                True -> removeLink dockerSymbolicLink
+                _ -> return ()
+
+            createSymbolicLink dockerBinPath dockerSymbolicLink
+        _ -> return ()
+
+
+registerAgent :: String -> IO (String, String)
+registerAgent agentToken = do
     putStrLn $ "Removing old certificates: " ++ keyFilePath ++ ", " ++ certFilePath ++ ", " ++ caFilePath
     doesFileExist keyFilePath >>= \case
         True -> removeFile keyFilePath
@@ -156,8 +158,6 @@ registerAndSaveToken = do
         _ -> return ()
 
     cert <- createCerts keyFilePath
-    (nodeId, nodeToken) <- joinNode token cert
-
-    -- saveConf (conf {nodeId = show nodeId})
+    (nodeId, nodeToken) <- joinNode agentToken cert
 
     return (nodeId, nodeToken)

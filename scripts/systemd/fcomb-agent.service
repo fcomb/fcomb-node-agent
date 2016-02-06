@@ -1,0 +1,14 @@
+[Unit]
+Description=Agent to manage Docker hosts through Fcomb
+After=network.target docker.socket
+Requires=fcomb-agent.socket
+
+[Service]
+ExecStart=/usr/bin/fcomb-agent start
+MountFlags=slave
+LimitNOFILE=1048576
+LimitNPROC=1048576
+LimitCORE=infinity
+
+[Install]
+WantedBy=multi-user.target
