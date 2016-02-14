@@ -8,7 +8,7 @@ import System.Directory
 import System.Posix.Process
 import Control.Exception
 import Agent
-import Globals (fcombPidFile, agentVersion)
+import Globals (fcombPidFile, agentVersion, fcombHome)
 import Config
 
 
@@ -18,6 +18,7 @@ main = do
 
     getArgs >>= \case
         "install" : tokenArg : [] -> do
+            prepareFcombHome
             putStrLn $ "Provided agent token: " ++ tokenArg
             saveConf $ Configuration "" "" tokenArg
             exitSuccess
@@ -61,3 +62,11 @@ createPidFile pidFile =
         checkPidFile pidFile
         writeFile pidFile (show pid)
         putStrLn $ "Created pid file(" ++ pidFile ++ "): " ++ (show pid)
+
+
+prepareFcombHome :: IO ()
+prepareFcombHome = doesDirectoryExist fcombHome >>= \case
+        False -> do
+            putStrLn $ "Creating directory for fcomb home " ++ fcombHome
+            createDirectoryIfMissing True fcombHome
+        _ -> return ()

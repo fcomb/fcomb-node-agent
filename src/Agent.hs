@@ -41,7 +41,7 @@ startAgent = do
         _ ->
             throw $ AgentException $ "Config not found at " ++ configFilePath ++ " Please use the 'install' command with your agent token"
 
-    prepareHomes
+    prepareDockerHome
     prepareDockerBinaries
 
     putStrLn "Checking docker version:"
@@ -102,15 +102,8 @@ startAgent = do
                     terminationLoop dockerHandle (attempts + 1)
 
 
-prepareHomes :: IO ()
-prepareHomes = do
-    doesDirectoryExist fcombHome >>= \case
-        False -> do
-            putStrLn $ "Creating directory for fcomb home " ++ fcombHome
-            createDirectoryIfMissing True fcombHome
-        _ -> return ()
-
-    doesDirectoryExist dockerHome >>= \case
+prepareDockerHome :: IO ()
+prepareDockerHome = doesDirectoryExist dockerHome >>= \case
         False -> do
             putStrLn $ "Creating directory for docker home " ++ dockerHome
             createDirectoryIfMissing True dockerHome
